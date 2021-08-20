@@ -1,0 +1,90 @@
+#!/usr/bin/env python
+"""Transfer a pdf to remarkable device
+
+Based on this shell script:
+    https://github.com/adaerr/reMarkableScripts/blob/master/pdf2remarkable.sh
+
+"""
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("file", nargs="+")
+parser.add_argument("-r", "--restart", action="store_true")
+args = parser.parse_args()
+
+import uuid
+import json
+import glob
+import tempfile
+import os
+import subprocess
+import shutil
+import time
+
+with tempfile.TemporaryDirectory() as tmpdir:
+    for file in args.file:
+        if not os.path.exists(file):
+            warnings.warn(f"Skipping {file}: doesn't exist")
+            continue
+
+        extension = os.path.splitext(file)[-1].lower()
+        if extension not in [".pdf", ".epub"]:
+            warnings.warn(f"Skipping {file}: bad extension")
+            continue
+
+        file_uuid = str(uuid.uuid4())
+        shutil.copyfile(file, f"{tmpdir}/{file_uuid}{extension}")
+
+        metadata = {
+            "deleted": False,
+            "lastModified": str(int(time.time() * 1000)),
+            "metadatamodified": False,
+            "modified": False,
+            "parent": "",
+            "pinned": False,
+            "synced": False,
+            "type": "DocumentType",
+            "version": 1,
+            "visibleName": os.path.basename(file),
+        }
+        with open(f"{tmpdir}/{file_uuid}.metadata", "w") as f:
+            json.dump(metadata, f)
+
+        if extension == ".pdf":
+            content = {
+                "extraMetaData": {},
+                "fileType": "pdf",
+                "fontName": "",
+                "lastOpenedPage": 0,
+                "lineHeight": -1,
+                "margins": 100,
+                "pageCount": 1,
+                "textScale": 1,
+                "transform": {
+                    "m11": 1,
+                    "m12": 1,
+                    "m13": 1,
+                    "m21": 1,
+                    "m22": 1,
+                    "m23": 1,
+                    "m31": 1,
+                    "m32": 1,
+                    "m33": 1,
+                }
+            }
+        elif extension == ".epub":
+            content = {
+                "fileType": "epub",
+            }
+        else:
+            raise NotImplementedError
+        with open(f"{tmpdir}/{file_uuid}.content", "w") as f:
+            json.dump(content, f)
+
+    cmd = ["scp"] + glob.glob(f"{tmpdir}/*") + ["root@remarkable:~/.local/share/remarkable/xochitl/"]
+    print(" ".join(cmd))
+    subprocess.call(cmd)
+    if args.restart:
+        cmd = ["ssh", "root@remarkable", "systemctl", "restart", "xochitl"]
+        print(" ".join(cmd))
+        subprocess.call(cmd)
