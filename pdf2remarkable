@@ -4,12 +4,19 @@
 Based on this shell script:
     https://github.com/adaerr/reMarkableScripts/blob/master/pdf2remarkable.sh
 
+This script assumes some prior setup:
+
+- You must set up passwordless ssh to the host (default: root@remarkable)
+- For .cbz files you need the ebook-convert binary provided by calibre
+
 """
 import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file", nargs="+")
 parser.add_argument("-r", "--restart", action="store_true")
+parser.add_argument("--manga", action="store_true")
+parser.add_argument("--host", default="root@remarkable")
 args = parser.parse_args()
 
 import uuid
@@ -27,13 +34,22 @@ with tempfile.TemporaryDirectory() as tmpdir:
             warnings.warn(f"Skipping {file}: doesn't exist")
             continue
 
-        extension = os.path.splitext(file)[-1].lower()
-        if extension not in [".pdf", ".epub"]:
+        name, *_, extension = os.path.splitext(os.path.basename(file))
+        extension = extension.lower()
+        if extension not in [".pdf", ".epub", ".cbz"]:
             warnings.warn(f"Skipping {file}: bad extension")
             continue
 
         file_uuid = str(uuid.uuid4())
-        shutil.copyfile(file, f"{tmpdir}/{file_uuid}{extension}")
+        if extension == ".cbz":
+            cmd = ["ebook-convert", file, f"{tmpdir}/{file_uuid}.pdf", "--comic-image-size", "1404x1872", "--disable-trim", "--keep-aspect-ratio"]
+            if args.manga:
+                cmd.append("--right2left")
+            cmd.extend(["--custom-size", "8.25x11", "--output-format", "jpg"])
+            subprocess.call(cmd)
+            extension = ".pdf"
+        else:
+            shutil.copyfile(file, f"{tmpdir}/{file_uuid}{extension}")
 
         metadata = {
             "deleted": False,
@@ -45,7 +61,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
             "synced": False,
             "type": "DocumentType",
             "version": 1,
-            "visibleName": os.path.basename(file),
+            "visibleName": f"{name}{extension}",
         }
         with open(f"{tmpdir}/{file_uuid}.metadata", "w") as f:
             json.dump(metadata, f)
@@ -81,10 +97,10 @@ with tempfile.TemporaryDirectory() as tmpdir:
         with open(f"{tmpdir}/{file_uuid}.content", "w") as f:
             json.dump(content, f)
 
-    cmd = ["scp"] + glob.glob(f"{tmpdir}/*") + ["root@remarkable:~/.local/share/remarkable/xochitl/"]
+    cmd = ["scp"] + glob.glob(f"{tmpdir}/*") + [f"{args.host}:~/.local/share/remarkable/xochitl/"]
     print(" ".join(cmd))
     subprocess.call(cmd)
     if args.restart:
-        cmd = ["ssh", "root@remarkable", "systemctl", "restart", "xochitl"]
+        cmd = ["ssh", args.host, "systemctl", "restart", "xochitl"]
         print(" ".join(cmd))
         subprocess.call(cmd)
