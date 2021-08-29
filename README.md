@@ -10,4 +10,4 @@ Originally based on this shell script:
 
 Run the script with `-h` for help.
 
-This script has only been tested on a Linux system with Python 3.9 and using password-less ssh.
+This script has only been tested on a Fedora Linux system with Python 3.9 and using password-less ssh. Other configurations may work but cannot be guaranteed.
