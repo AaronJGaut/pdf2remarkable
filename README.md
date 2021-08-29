@@ -1,6 +1,10 @@
-Transfer a pdf to remarkable device
+Transfer pdfs and other documents to reMarkable e-ink tablet. Supported extensions:
 
-Based on this shell script:
+- pdf
+- epub
+- cbz
+
+Originally based on this shell script:
 
 [https://github.com/adaerr/reMarkableScripts/blob/master/pdf2remarkable.sh](https://github.com/adaerr/reMarkableScripts/blob/master/pdf2remarkable.sh)
 
