@@ -27,6 +27,7 @@ import os
 import subprocess
 import shutil
 import time
+import warnings
 
 with tempfile.TemporaryDirectory() as tmpdir:
     for file in args.file:
