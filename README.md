@@ -2,7 +2,7 @@ Transfer pdfs and other documents to reMarkable e-ink tablet. Supported extensio
 
 - pdf
 - epub
-- cbz
+- cbz (requires the `ebook-convert` binary provided by `calibre`)
 
 Originally based on this shell script:
 
@@ -10,10 +10,4 @@ Originally based on this shell script:
 
 Run the script with `-h` for help.
 
-This script assumes some prior setup:
-
-- Requires a recent Python version (tested on 3.9)
-- You must set up password-less ssh to the host (default: root@remarkable)
-- For .cbz files you need the ebook-convert binary provided by calibre
-
-
+This script has only been tested on a Linux system with Python 3.9 and using password-less ssh.
